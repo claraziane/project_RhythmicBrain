@@ -2,7 +2,7 @@
 % - Remove ICs of occular movements
 % - Save
 %
-% Tip : place a stopper at line 41 so that you can inspect ICs before being
+% Tip : place a stopper at line 44 so that you can inspect ICs before being
 % asked which ones you would like to remove
 
 close all;
@@ -10,10 +10,11 @@ clear all;
 clc;
 
 % Declare paths
-pathData = '/Volumes/Seagate/project_rhythmicBrain/DATA/';
-addpath('/Users/claraziane/Documents/Académique/Informatique/MATLAB/eeglab2021.1');
+pathData = '/Volumes/Seagate/project_rhythmicBrain/DATA/'; %Folder where all data is
+addpath('/Users/claraziane/Documents/Académique/Informatique/MATLAB/eeglab2021.1'); %EEGLAB toolbox
+
+% Load matrix where all rejected ICs are stored (comment if running script for the 1st time)
 load('/Volumes/Seagate/project_rhythmicBrain/Results//subAll/icaReject.mat')
-load('/Volumes/Seagate/project_rhythmicBrain/DATA/chanLocs.mat') % File containing EEG electrode coordinates
 
 Participants   = {'sub-001'; 'sub-002'; 'sub-003'; 'sub-004'; 'sub-005'; 'sub-006'; 'sub-007'; 'sub-008'; 'sub-009'; 'sub-010'; 'sub-011'; 'sub-012'; 'sub-013'; 'sub-014'; 'sub-015'; 'sub-016'; 'sub-017'; 'sub-018'};
 Blocks         = {'run-01'; 'run-02'; 'run-03'; 'run-04'; 'run-05'; 'run-06'; 'run-07'; 'run-08'; 'run-09'; 'run-10'; 'run-11'; 'run-12'; 'run-13'; 'run-14'; 'run-15'; 'run-16'; 'run-17'; 'run-18'; 'run-19'};
@@ -22,7 +23,7 @@ extensionRoot  = '_ica.set';
 extensionFinal = '_icaClean.set';
 
 [ALLEEG EEG CURRENTSET ALLCOM] = eeglab;
-for iParticipant = 1:length(Participants)
+for iParticipant = 8%1:length(Participants)
     directory = fullfile(pathData, Participants{iParticipant}, 'eeg');
     participantStr = strcat('SUB', Participants{iParticipant}(end-2:end));
 
@@ -37,27 +38,42 @@ for iParticipant = 1:length(Participants)
             EEG = pop_loadset('filename', fileRead,'filepath', directory); % Loads an EEG dataset
             [ALLEEG EEG CURRENTSET] = pop_newset(ALLEEG, EEG, 1,'gui','on'); % Edits/saves EEG dataset structure information
             
-            iIC = 1;
-            while(1)
-                icaRemove = input('Should some ICAs be removed from the data ?, Y/N [Y]:', 's');
-                if icaRemove == 'Y'
-                    icaReject.(participantStr).(conditionStr)(iIC) = input('Which ICA should be removed from the data ?');
-                    iIC = iIC + 1;
-                elseif icaRemove == 'N'
-                    break
+            if iBlock == 1                
+                % Identify bad components and store in icaReject matrix
+                iIC = 1;
+                while(1)
+                    icaRemove = input('Should some ICAs be removed from the data ?, Y/N [Y]:', 's');
+                    if icaRemove == 'Y'
+                        icaReject.(participantStr).(conditionStr)(iIC) = input('Which ICA should be removed from the data ?');
+                        iIC = iIC + 1;
+                    elseif icaRemove == 'N'
+                        break
+                    end
                 end
-            end
-            
-            % Remove identified bad components
-            if iIC > 1
-                EEG = pop_subcomp(EEG, icaReject.(participantStr).(conditionStr)(:), 0); %removes ICA from EEG and subtracts their activities from the data
-                eeg_checkset(EEG);
-                [ALLEEG EEG CURRENTSET] = pop_newset(ALLEEG, EEG, 1,'overwrite','on','gui','off');
 
-                % Rereference
-                EEG = pop_reref(EEG, []);
-                [ALLEEG EEG CURRENTSET] = pop_newset(ALLEEG, EEG, 1,'overwrite','on','gui','off');
+                % Remove identified bad components
+                if iIC >  1
+                    EEG = pop_subcomp(EEG, icaReject.(participantStr).(conditionStr)(:), 0); %removes ICA from EEG and subtracts their activities from the data
+                end
+
+            else
+                conditionFirstStr = strcat('Run', Blocks{1}(end-1:end));               
+                icaReject.(participantStr).(conditionStr) = icaReject.(participantStr).(conditionFirstStr);
+                iIC = length(icaReject.(participantStr).(conditionStr));
+
+                % Remove identified bad components for previous block
+                if iIC >=  1
+                    EEG = pop_subcomp(EEG, icaReject.(participantStr).(conditionStr)(:), 0); %removes ICA from EEG and subtracts their activities from the data
+                end            
+
             end
+            eeg_checkset(EEG);
+            [ALLEEG EEG CURRENTSET] = pop_newset(ALLEEG, EEG, 1,'overwrite','on','gui','off');
+
+            % Rereference
+            EEG = pop_reref(EEG, []);
+            [ALLEEG EEG CURRENTSET] = pop_newset(ALLEEG, EEG, 1,'overwrite','on','gui','off');
+
 
             % Save new .set file
             EEG = pop_saveset(EEG, 'filename', fileWrite, 'filepath', directory);

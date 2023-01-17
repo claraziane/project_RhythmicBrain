@@ -1,9 +1,11 @@
 %% Preprocessing : phase 2
 % - Remove EMG and AUX channels
-% - Remove or interpolate bad channels (comment line 72 to remove and 73 to interpolate)
+% - Remove or interpolate bad channels (comment line 78 to remove and 79 to interpolate)
 % - Save
+% 
+% Note that channel to remove should be indicated as channel number
 %
-% Tip: place a stopper at line 59 so that you can inspect channels before being
+% Tip: place a stopper at line 65 so that you can inspect channels before being
 % asked which ones you would like to remove
 
 close all;
@@ -11,10 +13,14 @@ clear all;
 clc;
 
 % Declare paths
-pathData = '/Volumes/Seagate/project_rhythmicBrain/DATA/';
-addpath('/Users/claraziane/Documents/Académique/Informatique/MATLAB/eeglab2021.1');
-load('/Volumes/Seagate/project_rhythmicBrain/Results//subAll/chanReject.mat')
-load('/Volumes/Seagate/project_rhythmicBrain/DATA/chanLocs.mat') % File containing EEG electrode coordinates
+pathData = '/Volumes/Seagate/project_rhythmicBrain/DATA/'; %Folder where all data is
+addpath('/Users/claraziane/Documents/Académique/Informatique/MATLAB/eeglab2021.1'); %EEGLAB toolbox
+
+% Load matrix where all rejected channels are stored (comment if running script for the 1st time)
+load('/Volumes/Seagate/project_rhythmicBrain/Results/subAll/chanReject.mat')
+
+ % Load file containing EEG electrode coordinates as some blocks do not have the right coordinates
+load('/Volumes/Seagate/project_rhythmicBrain/DATA/chanLocs.mat')
 
 Participants = {'sub-001'; 'sub-002'; 'sub-003'; 'sub-004'; 'sub-005'; 'sub-006'; 'sub-007'; 'sub-008'; 'sub-009'; 'sub-010'; 'sub-011'; 'sub-012'; 'sub-013'; 'sub-014'; 'sub-015'; 'sub-016'; 'sub-017'; 'sub-018'};
 Blocks       = {'run-01'; 'run-02'; 'run-03'; 'run-04'; 'run-05'; 'run-06'; 'run-07'; 'run-08'; 'run-09'; 'run-10'; 'run-11'; 'run-12'; 'run-13'; 'run-14'; 'run-15'; 'run-16'; 'run-17'; 'run-18'; 'run-19'};

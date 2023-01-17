@@ -4,15 +4,15 @@
 % - Save
 %
 % Note: Data was already high-pass filtered at 1 Hz, low-pass filtered at 200 Hz
-% and notch-filtered at 500 Hz before being put in open access
+% and notch-filtered at 50 Hz before being made available in open access
 
 close all;
 clear all;
 clc;
 
 % Declare paths
-pathData = '/Volumes/Seagate/project_rhythmicBrain/DATA/';
-addpath('/Users/claraziane/Documents/Académique/Informatique/MATLAB/eeglab2021.1')
+pathData = '/Volumes/Seagate/project_rhythmicBrain/DATA/'; %Folder where all data is
+addpath('/Users/claraziane/Documents/Académique/Informatique/MATLAB/eeglab2021.1') %EEGLAB toolbox
 
 Participants = {'sub-001'; 'sub-002'; 'sub-003'; 'sub-004'; 'sub-005'; 'sub-006'; 'sub-007'; 'sub-008'; 'sub-009'; 'sub-010'; 'sub-011'; 'sub-012'; 'sub-013'; 'sub-014'; 'sub-015'; 'sub-016'; 'sub-017'; 'sub-018'};
 Blocks       = {'run-01'; 'run-02'; 'run-03'; 'run-04'; 'run-05'; 'run-06'; 'run-07'; 'run-08'; 'run-09'; 'run-10'; 'run-11'; 'run-12'; 'run-13'; 'run-14'; 'run-15'; 'run-16'; 'run-17'; 'run-18'; 'run-19'};

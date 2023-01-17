@@ -1,9 +1,12 @@
-%% Calculating the stability index
-% 1. Compute RESS component :
+%% Extracting entrained component & computing the stability index
+% 1. Use events to extract data corresponding to five conditions : 
+% (1) cued gait at preferred cadence; (2) cued gait at slow cadence; (3) cued gait at fast cadence;
+% (4) uncued gait at preferred cadence; (5) standing upright while listenning to cues matching preferred cadence
+% 2. Compute RESS component :
 %   a. sequence EEG in trials according to beat onsets (-100:500 ms)
-%   b. compute covariance matrices S (from narrow-filtered data) and R (from broad-band signal)
+%   b. compute covariance matrices S (from narrow-filtered data) and R (from neighbouring frequencies)
 %   c. perform Generalized Eigen Decomposition (GED)
-% 2. Compute stability index
+% 3. Compute stability index
 %   a. Filter RESS component
 %   b. Transform filtered RESS into analytical signal using Hilbert transform
 %   c. Compute phase angles
@@ -15,11 +18,10 @@ close all;
 clc;
 
 % Declare paths
-pathData    = '/Volumes/Seagate/project_rhythmicBrain/DATA/';
-pathResults = '/Volumes/Seagate/project_rhythmicBrain/Results/';
-addpath('/Users/claraziane/Documents/Académique/Informatique/MATLAB/eeglab2021.1');
+pathData    = '/Volumes/Seagate/project_rhythmicBrain/DATA/'; %Folder where all data is
+pathResults = '/Volumes/Seagate/project_rhythmicBrain/Results/';  %Folder where to save results
+addpath('/Users/claraziane/Documents/Académique/Informatique/MATLAB/eeglab2021.1'); %EEGLAB toolbox
 addpath('/Users/claraziane/OneDrive - Universite de Montreal/S2M/projetRAC/dataAnalysis/Toolbox/GED-master');
-addpath '/Volumes/10.89.24.15/Projet_RAC/dataAnalysis/Scripts/Clara/EEG/Functions'
 
 Participants = {'sub-001'; 'sub-002'; 'sub-003'; 'sub-004'; 'sub-005'; 'sub-006'; 'sub-007'; 'sub-008'; 'sub-009'; 'sub-010'; 'sub-011'; 'sub-012'; 'sub-013'; 'sub-014'; 'sub-015'; 'sub-016'; 'sub-017'; 'sub-018'};
 Blocks       = {'run-01'; 'run-02'; 'run-03'; 'run-04'; 'run-05'; 'run-06'; 'run-07'; 'run-08'; 'run-09'; 'run-10'; 'run-11'; 'run-12'; 'run-13'; 'run-14'; 'run-15'; 'run-16'; 'run-17'; 'run-18'; 'run-19'};
@@ -35,6 +37,10 @@ Event        = [100 200 444 999 333 114 113 119 171 271 159 259 153 253];
 % "119": "First right heel strike relative to step delay tempo shift"
 % "171": "Cue during standing previously associated with right heel strike"
 % "271": "Cue during standing previously associated with left heel strike"
+% "159": "Auditory cues for right heel strikes during step delay pacing tempo"
+% "259": "Auditory cues for left heel strikes during step delay pacing tempo"
+% "153": "Auditory cues for right heel strikes during step advance pacing tempo"
+% "253": "Auditory cues for left heel strikes during step advance pacing tempo"
 
 % Electrode used for 'best-electrode' analyses
 electrode = 'cz';
@@ -50,7 +56,7 @@ load([pathResults 'subAll/resultsEEG.mat']);
 
 [ALLEEG EEG CURRENTSET ALLCOM] = eeglab;
 
-for iParticipant = 2:4%length(Participants)
+for iParticipant = 1:length(Participants)
     participantStr = strcat('SUB', Participants{iParticipant}(end-2:end));
     k = 1; %Indexing standing (rest) trials
 
@@ -239,7 +245,7 @@ for iParticipant = 2:4%length(Participants)
                                 stepPrefUncued = sort(stepPrefUncued);
                                 Freq(i,iSpeed) = mean(diff(stepPrefUncued));
                             end
-                            Freq(i,iSpeed) = round(EEG.srate/Freq(i,iSpeed),1);
+                            Freq(i,iSpeed) = EEG.srate/Freq(i,iSpeed);
 
                             i = i + 1;
                             clear stepPrefCued stepSlowCued stepFastCued target
@@ -282,7 +288,7 @@ for iParticipant = 2:4%length(Participants)
                     dataLength(k,iSpeed) = diff(timeWin(iSpeed,:))+1;
 
                     Freq(k,iSpeed) = mean(diff(restPrefCued));
-                    Freq(k,iSpeed) = round(EEG.srate/Freq(k,iSpeed),1);
+                    Freq(k,iSpeed) = EEG.srate/Freq(k,iSpeed);
                     k = k + 1;
 
                     clear restPrefCued
@@ -323,7 +329,7 @@ for iParticipant = 2:4%length(Participants)
 
         %% Compute covariance matrices
         % S covariance
-        sFreq = round(nanmean(Freq(:,iSpeed)),1);
+        sFreq = round(nanmean(Freq(:,iSpeed)),2);
         sData = filterFGx(dataTemp,EEG.srate,sFreq,sFWHM);
         sData = reshape(sData, nChan,[]);
         sData = bsxfun(@minus,sData,mean(sData,2));
@@ -349,9 +355,9 @@ for iParticipant = 2:4%length(Participants)
         Hz       = linspace(0,EEG.srate,fftRes);
         dataFFT  = mean(abs(fft(dataTemp,fftRes,2)/diff(timeWin)).^2,3);
 
-        %     % Apply regularization to R (optional)
-        %     regulFactor = .01;
-        %     rCovariance = (1-regulFactor)*rCovariance + regulFactor*mean(eig(rCovariance))*eye(size(rCovariance));
+        % Apply regularization to R (optional)
+        regulFactor = .01;
+        rCovariance = (1-regulFactor)*rCovariance + regulFactor*mean(eig(rCovariance))*eye(size(rCovariance));
 
         % Plot covariance martices
         clim = [-1 1]*1000;
@@ -420,7 +426,7 @@ for iParticipant = 2:4%length(Participants)
         subplot(2,2,[3:4]); plot(Hz,compFFT);
         xlim = [0 25]; set(gca,'xlim',xlim);...
             xlabel('Frequency (Hz)', 'FontSize', 14) ; ylabel('Power', 'FontSize', 14);
-        legend(['Peak frequency = ' num2str(round(Hz(fIndex),1))], 'FontSize', 14);
+        legend(['Peak frequency = ' num2str(round(Hz(fIndex),2))], 'FontSize', 14);
         title('Component FFT', 'FontSize', 14);
         saveas(figure(5), [directoryResults '/fig_ressTopo.png']);
 
@@ -457,7 +463,7 @@ for iParticipant = 2:4%length(Participants)
 
         % Gaussian filering extracted component
         compTimeConcat = reshape(compTime, 1,[]);
-        compFiltered   = filterFGx(compTimeConcat, EEG.srate, sFreq, sFWHM);
+        compFiltered   = filterFGx(compTimeConcat, EEG.srate, sFreq, 1);
 
         % Compute Hilbert Transform
         compHilbert = hilbert(compFiltered);
