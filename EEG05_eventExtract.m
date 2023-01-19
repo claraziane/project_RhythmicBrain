@@ -1,7 +1,8 @@
 %% Extract relevant data from events
-% Use events to extract data corresponding to five conditions : 
+% 1. Use events to extract data corresponding to five conditions : 
 % (1) cued gait at preferred cadence; (2) cued gait at slow cadence; (3) cued gait at fast cadence;
 % (4) uncued gait at preferred cadence; (5) standing upright while listenning to cues matching preferred cadence
+% 2. Extracted data is then stored in a matrix which is saved in the subject data folder
 
 clear;
 close all;
@@ -34,12 +35,8 @@ Event        = [100 200 444 999 333 114 113 119 171 271 159 259 153 253];
 % Electrode used for 'best-electrode' analyses (see EEG06 script)
 electrode = 'cz';
 
-% Load matrix with already-extracted data (comment if running script for the 1st time)
-load([pathResults 'subAll/DATA.mat']);
-
 [ALLEEG EEG CURRENTSET ALLCOM] = eeglab;
-
-for iParticipant = 1%:length(Participants)
+for iParticipant = 8%length(Participants)
     participantStr = strcat('SUB', Participants{iParticipant}(end-2:end));
     k = 1; %Indexing standing (rest) trials
 
@@ -58,9 +55,9 @@ for iParticipant = 1%:length(Participants)
             data = double(EEG.data);
 
             % Extract relevant info
-            rateEEG.(participantStr)  = EEG.srate;
-            chanLocs.(participantStr) = EEG.chanlocs;
-            nChan = length(chanLocs.(participantStr));
+            rateEEG  = EEG.srate;
+            chanLocs = EEG.chanlocs;
+            nChan = length(chanLocs);
             
             % Check that the data  matrix is full rank
             if rank(data) ~= nChan
@@ -68,7 +65,7 @@ for iParticipant = 1%:length(Participants)
             end
 
             % Find Cz in channels
-            elecLoc.(participantStr) = strcmpi(electrode,{EEG.chanlocs.labels});
+            elecLoc = strcmpi(electrode,{EEG.chanlocs.labels});
 
             %% Extract relevant events of walking conditioons
 
@@ -113,7 +110,6 @@ for iParticipant = 1%:length(Participants)
                 end
                 % figure; plot(stepL); hold on; plot(locsL,(stepL(locsL)), 'r*')
                 eventLatency(2,1:length(stepOnset(2,locsL))) = stepOnset(2,locsL); %Last left step onset before tempo cueing
-
                 
                 eventLatency(2,end+1)  = max(stepOnset(2,:));          %Very last left step onset before cueing
                 stepBegin(2,1) = stepOnset(2,1);                       %Very first uncued right step onset
@@ -146,7 +142,7 @@ for iParticipant = 1%:length(Participants)
                     if iBlock == 1
                         i = 1; %Total number of trials (all blocks)
                     else
-                        i = size((dataAll.(participantStr).([Conditions{iCond}])),3) + 1;
+                        i = size((dataAll.([Conditions{iCond}])),3) + 1;
                     end
 
                     for iTrial = 1:length(eventLatency(~isnan(eventLatency(iCond,:))))
@@ -174,19 +170,19 @@ for iParticipant = 1%:length(Participants)
                             end
 
                             if i == 1
-                                dataAll.(participantStr).([Conditions{iCond}])(:,:,i) = nan(nChan,diff(timeWin(iCond,:))+1);
+                                dataAll.([Conditions{iCond}])(:,:,i) = nan(nChan,diff(timeWin(iCond,:))+1);
                             else
-                                timeDiff = diff(timeWin(iCond,:))+1 - size((dataAll.(participantStr).([Conditions{iCond}])),2);
+                                timeDiff = diff(timeWin(iCond,:))+1 - size((dataAll.([Conditions{iCond}])),2);
 
                                 if timeDiff > 0
-                                    dataAll.(participantStr).([Conditions{iCond}])(:,size((dataAll.(participantStr).([Conditions{iCond}])),2)+1:size((dataAll.(participantStr).([Conditions{iCond}])),2)+timeDiff,1:i-1) = nan;
-                                    dataAll.(participantStr).([Conditions{iCond}])(:,:,i) = nan(nChan,diff(timeWin(iCond,:))+1);
+                                    dataAll.([Conditions{iCond}])(:,size((dataAll.([Conditions{iCond}])),2)+1:size((dataAll.([Conditions{iCond}])),2)+timeDiff,1:i-1) = nan;
+                                    dataAll.([Conditions{iCond}])(:,:,i) = nan(nChan,diff(timeWin(iCond,:))+1);
                                 elseif timeDiff <= 0
-                                    dataAll.(participantStr).([Conditions{iCond}])(:,:,i) = nan(nChan,size((dataAll.(participantStr).([Conditions{iCond}])),2));
+                                    dataAll.([Conditions{iCond}])(:,:,i) = nan(nChan,size((dataAll.([Conditions{iCond}])),2));
                                 end
 
                             end
-                            dataAll.(participantStr).([Conditions{iCond}])(:,1:diff(timeWin(iCond,:))+1,i) = data(:,timeWin(iCond,1):timeWin(iCond,2));
+                            dataAll.([Conditions{iCond}])(:,1:diff(timeWin(iCond,:))+1,i) = data(:,timeWin(iCond,1):timeWin(iCond,2));
                             dataLengthTemp(i,iCond) = diff(timeWin(iCond,:))+1;
 
                             % Compute step freq
@@ -229,7 +225,7 @@ for iParticipant = 1%:length(Participants)
                                 stepPrefUncued = sort(stepPrefUncued);
                                 Freq(i,iCond) = mean(diff(stepPrefUncued));
                             end
-                            Freq(i,iCond) = rateEEG.(participantStr)/Freq(i,iCond);
+                            Freq(i,iCond) = rateEEG/Freq(i,iCond);
 
                             i = i + 1;
                             clear stepPrefCued stepSlowCued stepFastCued target
@@ -256,23 +252,23 @@ for iParticipant = 1%:length(Participants)
 
                     % Extracting rest data
                     if k == 1
-                        dataAll.(participantStr).([Conditions{iCond}])(:,:,k) = nan(nChan,diff(timeWin(iCond,:))+1);
+                        dataAll.([Conditions{iCond}])(:,:,k) = nan(nChan,diff(timeWin(iCond,:))+1);
                     else
                         
-                        timeDiff = diff(timeWin(iCond,:))+1 - size((dataAll.(participantStr).([Conditions{iCond}])),2);
+                        timeDiff = diff(timeWin(iCond,:))+1 - size((dataAll.([Conditions{iCond}])),2);
                         if timeDiff > 0
-                            dataAll.(participantStr).([Conditions{iCond}])(:,size((dataAll.(participantStr).([Conditions{iCond}])),2)+1:size((dataAll.(participantStr).([Conditions{iCond}])),2)+timeDiff,1:k-1) = nan;
-                            dataAll.(participantStr).([Conditions{iCond}])(:,:,k) = nan(nChan,diff(timeWin(iCond,:))+1);
+                            dataAll.([Conditions{iCond}])(:,size((dataAll.([Conditions{iCond}])),2)+1:size((dataAll.([Conditions{iCond}])),2)+timeDiff,1:k-1) = nan;
+                            dataAll.([Conditions{iCond}])(:,:,k) = nan(nChan,diff(timeWin(iCond,:))+1);
                         elseif timeDiff <= 0
-                            dataAll.(participantStr).([Conditions{iCond}])(:,:,k) = nan(nChan,size((dataAll.(participantStr).([Conditions{iCond}])),2));
+                            dataAll.([Conditions{iCond}])(:,:,k) = nan(nChan,size((dataAll.([Conditions{iCond}])),2));
                         end
 
                     end
-                    dataAll.(participantStr).([Conditions{iCond}])(:,1:diff(timeWin(iCond,:))+1,k) = data(:,timeWin(iCond,1):timeWin(iCond,2));
+                    dataAll.([Conditions{iCond}])(:,1:diff(timeWin(iCond,:))+1,k) = data(:,timeWin(iCond,1):timeWin(iCond,2));
                     dataLengthTemp(k,iCond) = diff(timeWin(iCond,:))+1;
 
                     Freq(k,iCond) = mean(diff(restPrefCued));
-                    Freq(k,iCond) = rateEEG.(participantStr)/Freq(k,iCond);
+                    Freq(k,iCond) = rateEEG/Freq(k,iCond);
                     k = k + 1;
 
                     clear restPrefCued
@@ -290,13 +286,13 @@ for iParticipant = 1%:length(Participants)
     end
      
     Freq(Freq == 0) = nan;
-    freqAll.(participantStr) = Freq;
+    freqAll = Freq;
 
     dataLengthTemp(dataLengthTemp == 0) = nan;
-    dataLength.(participantStr) = dataLengthTemp;
+    dataLength = dataLengthTemp;
 
-    save([pathResults 'subAll/DATA'], 'dataAll', 'dataLength', 'freqAll', 'elecLoc', 'rateEEG', 'chanLocs');
+    save([directory '/DATA'], 'dataAll', 'dataLength', 'freqAll', 'elecLoc', 'rateEEG', 'chanLocs');
 
-    clear dataLengthTemp Freq EEG 
+    clear dataAll dataLength dataLengthTemp Freq freqAll EEG elecLoc chanLocs rateEEG
 
 end

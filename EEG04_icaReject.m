@@ -2,7 +2,7 @@
 % - Remove ICs of occular movements
 % - Save
 %
-% Tip : place a stopper at line 44 so that you can inspect ICs before being
+% Tip : place a stopper at line 45 so that you can inspect ICs before being
 % asked which ones you would like to remove
 
 close all;
@@ -23,7 +23,7 @@ extensionRoot  = '_ica.set';
 extensionFinal = '_icaClean.set';
 
 [ALLEEG EEG CURRENTSET ALLCOM] = eeglab;
-for iParticipant = 8%1:length(Participants)
+for iParticipant = 6%1:length(Participants)
     directory = fullfile(pathData, Participants{iParticipant}, 'eeg');
     participantStr = strcat('SUB', Participants{iParticipant}(end-2:end));
 
@@ -38,7 +38,8 @@ for iParticipant = 8%1:length(Participants)
             EEG = pop_loadset('filename', fileRead,'filepath', directory); % Loads an EEG dataset
             [ALLEEG EEG CURRENTSET] = pop_newset(ALLEEG, EEG, 1,'gui','on'); % Edits/saves EEG dataset structure information
             
-            if iBlock == 1                
+            if iBlock == 1  
+
                 % Identify bad components and store in icaReject matrix
                 iIC = 1;
                 while(1)

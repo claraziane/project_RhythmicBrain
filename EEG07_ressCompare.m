@@ -18,7 +18,7 @@ addpath('/Volumes/Seagate/project_rhythmicBrain/Toolbox/UnivarScatter-master/Uni
 % Load EEG variables computed with previous script
 load([pathResults 'resultsEEG.mat'])
 
-Participants = {'SUB001'; 'SUB002'; 'SUB003'; 'SUB004'; 'SUB005'; 'SUB006'; 'SUB007'; 'SUB008';};
+Participants = {'SUB001'; 'SUB002'; 'SUB003'; 'SUB004'; 'SUB005'; 'SUB006'; 'SUB007'; 'SUB008'};
 Conditions   = {'Pref'; 'Slow'; 'Fast'; 'uncuedPref'; 'cuedPrefRest'};
 
 % Pre-allocate matrices
@@ -106,7 +106,7 @@ ylim = get(ax2, 'ylim');
 if powerDH == 1
     set(ax2, 'ylim', [ylim(1) ylim(2)+((ylim(2)-ylim(1))*0.10)]);
     ylim = get(ax2, 'ylim');
-    plot(iCompare, ((ylim(2)-ylim(1))*0.93)+ylim(1), '*', 'color', 'black', 'LineWidth', 1.5,  'MarkerSize', 30);
+    plot(((ylim(2)-ylim(1))*0.93)+ylim(1), '*', 'color', 'black', 'LineWidth', 1.5,  'MarkerSize', 30);
 end
 title('Power Delta')
 
@@ -133,7 +133,7 @@ ylim = get(ax4, 'ylim');
 if siDH == 1
     set(ax4, 'ylim', [ylim(1) ylim(2)+((ylim(2)-ylim(1))*0.10)]);
     ylim = get(ax4, 'ylim');
-    plot(iCompare, ((ylim(2)-ylim(1))*0.93)+ylim(1), '*', 'color', 'black', 'LineWidth', 1.5,  'MarkerSize', 30);
+    plot(((ylim(2)-ylim(1))*0.93)+ylim(1), '*', 'color', 'black', 'LineWidth', 1.5,  'MarkerSize', 30);
 end
 title('Stability Index Delta')
 
