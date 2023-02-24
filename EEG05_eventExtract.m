@@ -2,7 +2,9 @@
 % 1. Use events to extract data corresponding to five conditions : 
 % (1) cued gait at preferred cadence; (2) cued gait at slow cadence; (3) cued gait at fast cadence;
 % (4) uncued gait at preferred cadence; (5) standing upright while listenning to cues matching preferred cadence
-% 2. Extracted data is then stored in a matrix which is saved in the subject data folder
+% 2. Use events to extract step onsets
+% 3. Use events to extract auditory cues
+% 2. Extracted data is stored in a matrix which is saved in the subject data folder
 
 clear;
 close all;
@@ -13,7 +15,7 @@ pathData    = '/Volumes/Seagate/project_rhythmicBrain/DATA/'; %Folder where all 
 pathResults = '/Volumes/Seagate/project_rhythmicBrain/Results/';  %Folder where to save results
 addpath('/Users/claraziane/Documents/Académique/Informatique/MATLAB/eeglab2021.1'); %EEGLAB toolbox
 
-Participants = {'sub-001'; 'sub-002'; 'sub-003'; 'sub-004'; 'sub-005'; 'sub-006'; 'sub-007'; 'sub-008'; 'sub-009'; 'sub-010'; 'sub-011'; 'sub-012'; 'sub-013'; 'sub-014'; 'sub-015'; 'sub-016'; 'sub-017'; 'sub-018'};
+Participants = {'sub-001'; 'sub-002'; 'sub-003'; 'sub-004'; 'sub-005'; 'sub-006'; 'sub-007'; 'sub-008'; 'sub-009'; 'sub-010'; 'sub-011'; 'sub-012'; 'sub-013'; 'sub-014'; 'sub-015'; 'sub-016'; 'sub-017'; 'sub-018'; 'sub-019'; 'sub-020'};
 Blocks       = {'run-01'; 'run-02'; 'run-03'; 'run-04'; 'run-05'; 'run-06'; 'run-07'; 'run-08'; 'run-09'; 'run-10'; 'run-11'; 'run-12'; 'run-13'; 'run-14'; 'run-15'; 'run-16'; 'run-17'; 'run-18'; 'run-19'};
 Conditions   = {'Pref'; 'Slow'; 'Fast'; 'uncuedPref'; 'cuedPrefRest'};
 Event        = [100 200 444 999 333 114 113 119 171 271 159 259 153 253];
@@ -36,7 +38,7 @@ Event        = [100 200 444 999 333 114 113 119 171 271 159 259 153 253];
 electrode = 'cz';
 
 [ALLEEG EEG CURRENTSET ALLCOM] = eeglab;
-for iParticipant = 8%length(Participants)
+for iParticipant = 1:length(Participants)
     participantStr = strcat('SUB', Participants{iParticipant}(end-2:end));
     k = 1; %Indexing standing (rest) trials
 
@@ -159,6 +161,7 @@ for iParticipant = 8%length(Participants)
 
                             % Find time periods of cued gait at slow and fast cadences
                             else
+                                target = [];
                                 target = eventCues(iCond,:) - eventLatency(iCond,iTrial+1);
                                 target = target(target<0);
                                 if ~isempty(target)
@@ -168,6 +171,37 @@ for iParticipant = 8%length(Participants)
                                     timeWin(iCond,:) = [eventLatency(iCond,iTrial)  eventCues(iCond,sum(Index))];
                                 end
                             end
+
+                            % Extract step onsets and auditory cues
+                            Steps = [];
+                            cueOnsets = [];
+
+                            for iLatency = 1:length(EEG.urevent)
+                                if EEG.urevent(iLatency).latency >= timeWin(iCond,1) && EEG.urevent(iLatency).latency <= timeWin(iCond,2)
+                                    if ismember(EEG.urevent(iLatency).type, [101 201 109 209 103 203 100 200]) %Extract step events
+                                        Steps = [Steps; EEG.urevent(iLatency).latency];
+                                    elseif ismember(EEG.urevent(iLatency).type, [151 251 159 259 153 253]) %Extract auditory cue events
+                                        cueOnsets = [cueOnsets; EEG.urevent(iLatency).latency];
+                                    end
+                                end
+                            end
+                            
+                            % Only keep the first 6 steps following gait adaptation (6 steps)
+                            if length(Steps) >= 12
+                                Steps = sort(Steps);
+                                Steps = Steps(7:12); %Keep only steps 7 to 12
+                                Freq(i,iCond) = mean(diff(Steps)); %Compute mean step frequency on sychronised steps
+                                timeWin(iCond,1) = Steps(1); %Change begining of block to start with synchronised state
+                                timeWin(iCond,2) = Steps(end);
+                                stepData.([Conditions{iCond}])(:,i) = Steps;
+                                if ~isempty(cueOnsets)
+                                    cueData.([Conditions{iCond}])(1:length(cueOnsets),i) = sort(cueOnsets);
+                                    cueData.([Conditions{iCond}])(cueData.([Conditions{iCond}]) == 0) = NaN;
+                                end
+                            else
+                                break;
+                            end
+                            Freq(i,iCond) = rateEEG/Freq(i,iCond);
 
                             if i == 1
                                 dataAll.([Conditions{iCond}])(:,:,i) = nan(nChan,diff(timeWin(iCond,:))+1);
@@ -185,51 +219,7 @@ for iParticipant = 8%length(Participants)
                             dataAll.([Conditions{iCond}])(:,1:diff(timeWin(iCond,:))+1,i) = data(:,timeWin(iCond,1):timeWin(iCond,2));
                             dataLengthTemp(i,iCond) = diff(timeWin(iCond,:))+1;
 
-                            % Compute step freq
-                            stepPrefCued   = [];
-                            stepSlowCued   = [];
-                            stepFastCued   = [];
-                            stepPrefUncued = [];
-                            for iLatency = 1:length(EEG.urevent)
-                                if EEG.urevent(iLatency).latency >= timeWin(iCond,1) && EEG.urevent(iLatency).latency <= timeWin(iCond,2)
-                                    if EEG.urevent(iLatency).type == 101     % Preferred cadence (right heel strike)
-                                        stepPrefCued = [stepPrefCued; EEG.urevent(iLatency).latency];
-                                    elseif EEG.urevent(iLatency).type == 201 % Preferred cadence (left heel strike)
-                                        stepPrefCued = [stepPrefCued; EEG.urevent(iLatency).latency];
-                                    elseif EEG.urevent(iLatency).type == 109 % Slow cadence (right heel strike)
-                                        stepSlowCued = [stepSlowCued; EEG.urevent(iLatency).latency];
-                                    elseif EEG.urevent(iLatency).type == 209 % Slow cadence (left heel strike)
-                                        stepSlowCued = [stepSlowCued; EEG.urevent(iLatency).latency];
-                                    elseif EEG.urevent(iLatency).type == 103 % Fast cadence (right heel strike)
-                                        stepFastCued = [stepFastCued; EEG.urevent(iLatency).latency];
-                                    elseif EEG.urevent(iLatency).type == 203 % Fast cadence (left heel strike)
-                                        stepFastCued = [stepFastCued; EEG.urevent(iLatency).latency];
-                                    elseif EEG.urevent(iLatency).type == 100 % Uncued preferred cadence (right heel strike)
-                                        stepPrefUncued = [stepPrefUncued; EEG.urevent(iLatency).latency];
-                                    elseif EEG.urevent(iLatency).type == 200 % Uncued preferred cadence (left heel strike)
-                                        stepPrefUncued = [stepPrefUncued; EEG.urevent(iLatency).latency];                
-                                    end
-                                end
-                            end
-
-                            if iCond == 1
-                                stepPrefCued = sort(stepPrefCued);
-                                Freq(i,iCond) = mean(diff(stepPrefCued));
-                            elseif iCond == 2
-                                stepSlowCued = sort(stepSlowCued);
-                                Freq(i,iCond) = mean(diff(stepSlowCued));
-                            elseif iCond == 3
-                                stepFastCued = sort(stepFastCued);
-                                Freq(i,iCond) = mean(diff(stepFastCued));
-                            elseif iCond == 4
-                                stepPrefUncued = sort(stepPrefUncued);
-                                Freq(i,iCond) = mean(diff(stepPrefUncued));
-                            end
-                            Freq(i,iCond) = rateEEG/Freq(i,iCond);
-
                             i = i + 1;
-                            clear stepPrefCued stepSlowCued stepFastCued target
-
                         end
 
                     end
@@ -239,16 +229,20 @@ for iParticipant = 8%length(Participants)
             % If there is no steps in trial (ie., standing condition)
             elseif sum(ismember([EEG.urevent(1:end).type], Event(Event == 171))) ~= 0
                 iCond = 5;
-
-                restPrefCued = [];
+                
+                % Extract auditory cues during rest condition
+                cueOnsets = [];
                 if sum(ismember([EEG.urevent(1:end).type], [171 271])) == length(EEG.urevent)
                     for iLatency = 1:length(EEG.urevent)
-                        restPrefCued = [restPrefCued; EEG.urevent(iLatency).latency];
+                        cueOnsets = [cueOnsets; EEG.urevent(iLatency).latency];
                     end
-                    
+                    cueData.([Conditions{iCond}])(1:length(cueOnsets),k) = sort(cueOnsets);
+                    cueData.([Conditions{iCond}])(cueData.([Conditions{iCond}]) == 0) = NaN;
+
+
                     % Finding time periods of standing data
-                    timeWin(iCond,1) = restPrefCued(1);
-                    timeWin(iCond,2) = restPrefCued(end);
+                    timeWin(iCond,1) = cueOnsets(1);
+                    timeWin(iCond,2) = cueOnsets(end);
 
                     % Extracting rest data
                     if k == 1
@@ -267,11 +261,10 @@ for iParticipant = 8%length(Participants)
                     dataAll.([Conditions{iCond}])(:,1:diff(timeWin(iCond,:))+1,k) = data(:,timeWin(iCond,1):timeWin(iCond,2));
                     dataLengthTemp(k,iCond) = diff(timeWin(iCond,:))+1;
 
-                    Freq(k,iCond) = mean(diff(restPrefCued));
+                    Freq(k,iCond) = mean(diff(cueOnsets));
                     Freq(k,iCond) = rateEEG/Freq(k,iCond);
                     k = k + 1;
 
-                    clear restPrefCued
                 else
                     a = 1;
                 end
@@ -291,8 +284,8 @@ for iParticipant = 8%length(Participants)
     dataLengthTemp(dataLengthTemp == 0) = nan;
     dataLength = dataLengthTemp;
 
-    save([directory '/DATA'], 'dataAll', 'dataLength', 'freqAll', 'elecLoc', 'rateEEG', 'chanLocs');
+    save([directory '/equalDATA'], 'dataAll', 'dataLength', 'stepData', 'freqAll', 'cueData', 'elecLoc', 'rateEEG', 'chanLocs');
 
-    clear dataAll dataLength dataLengthTemp Freq freqAll EEG elecLoc chanLocs rateEEG
+    clear dataAll dataLength dataLengthTemp Freq freqAll EEG elecLoc chanLocs rateEEG stepData cueData
 
 end

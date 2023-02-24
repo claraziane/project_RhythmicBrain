@@ -22,14 +22,14 @@ load('/Volumes/Seagate/project_rhythmicBrain/Results/subAll/chanReject.mat')
  % Load file containing EEG electrode coordinates as some blocks do not have the right coordinates
 load('/Volumes/Seagate/project_rhythmicBrain/DATA/chanLocs.mat')
 
-Participants = {'sub-001'; 'sub-002'; 'sub-003'; 'sub-004'; 'sub-005'; 'sub-006'; 'sub-007'; 'sub-008'; 'sub-009'; 'sub-010'; 'sub-011'; 'sub-012'; 'sub-013'; 'sub-014'; 'sub-015'; 'sub-016'; 'sub-017'; 'sub-018'; 'sub-019'; 'sub-020'};
+Participants = {'sub-001'; 'sub-002'; 'sub-003'; 'sub-004'; 'sub-005'; 'sub-006'; 'sub-007'; 'sub-008'; 'sub-009'; 'sub-010'; 'sub-011'; 'sub-012'; 'sub-013'; 'sub-014'; 'sub-015'; 'sub-016'; 'sub-017'; 'sub-018'};
 Blocks       = {'run-01'; 'run-02'; 'run-03'; 'run-04'; 'run-05'; 'run-06'; 'run-07'; 'run-08'; 'run-09'; 'run-10'; 'run-11'; 'run-12'; 'run-13'; 'run-14'; 'run-15'; 'run-16'; 'run-17'; 'run-18'; 'run-19'};
 
 extensionRoot  = '.set';
 extensionFinal = '_chanClean.set';
 
 [ALLEEG EEG CURRENTSET ALLCOM] = eeglab;
-for iParticipant = 1:length(Participants)
+for iParticipant = 17%1:length(Participants)
     directory = fullfile(pathData, Participants{iParticipant}, 'eeg');
     participantStr = strcat('SUB', Participants{iParticipant}(end-2:end));
 
